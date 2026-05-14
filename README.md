@@ -47,7 +47,7 @@ from cocd import CoCD
 torch.manual_seed(0)
 
 x = torch.linspace(-1, 1, 64).unsqueeze(1)
-y = 3.0 * x - 0.5
+y = 3.0 * x * x - 0.5
 
 model = torch.nn.Linear(1, 1)
 loss_fn = torch.nn.MSELoss()
