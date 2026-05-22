@@ -23,9 +23,9 @@
     <header class="paper-hero">
       <div class="shell hero-copy">
         <p class="venue">ICML 2026</p>
-        <h1>Turning Stale Gradients into Stable Gradients</h1>
+        <h1>Turning Stale Gradients into Stable Gradients:</h1>
         <p class="subtitle">
-          <strong>Coherent Coordinate Descent</strong> with Implicit Landscape Smoothing for Lightweight Zeroth-Order Optimization
+          <span class="cocd-name"><strong>Co</strong>herent <strong>C</strong>oordinate <strong>D</strong>escent</span> with Implicit Landscape Smoothing for Lightweight Zeroth-Order Optimization
         </p>
         <p class="authors">
           Chen Liang <span>Xiatao Sun</span> <span>Qian Wang</span> <span>Daniel Rakita</span>
@@ -42,27 +42,29 @@
         <a href="static/pdfs/cocd-teaser.pdf" aria-label="Open the camera-ready CoCD teaser figure as PDF.">
           <img src="static/images/cocd-teaser-figure.png" alt="A stale-to-fresh gradient buffer with fresher coordinate blocks weighted more strongly.">
         </a>
-        <figcaption>
-          Each cuboid is a block of coordinate gradient estimates, ordered from the stalest block at t - tau to the freshest block at t. The fill levels encode momentum decay: fresher estimates receive larger weights before all blocks accumulate into the current gradient estimate and scale the update by alpha.
-        </figcaption>
       </figure>
       <div class="shell hero-method" aria-label="CoCD update cycle">
         <article>
           <p class="step">1. Decay</p>
-          <p>Momentum fades older blocks, matching the lower fill levels on the stale side of the figure.</p>
+          <p>Momentum \( \gamma \) fades older blocks, matching the lower fill levels on the stale side of the figure.</p>
         </article>
         <article>
           <p class="step">2. Refresh</p>
-          <p>A cyclic schedule overwrites B coordinates with fresh finite differences at the current parameters.</p>
+          <p>A cyclic schedule overwrites \(B\) coordinates with fresh finite differences at the current parameters.</p>
         </article>
         <article>
           <p class="step">3. Descend</p>
-          <p>The decay-weighted blocks form a full update direction, then alpha scales the parameter step.</p>
+          <p>The decay-weighted blocks form \( \hat{\mathbf{g}}_t \), then \( \alpha \) scales the parameter step.</p>
         </article>
       </div>
-      <p class="shell method-note hero-note">
-        gamma = 0 recovers Block Cyclic Coordinate Descent (BCCD); gamma = 1 keeps full stale-gradient history until coordinates are refreshed; 0 &lt; gamma &lt; 1 fades older estimates.
-      </p>
+      <div class="shell hero-notes">
+        <p>
+          Each cuboid is a block of coordinate gradient estimates, ordered from the stalest block evaluated at \(t-\tau\) to the freshest block at \(t\). The fill levels encode the momentum term \( \gamma \): fresher estimates receive larger weights before all blocks accumulate into \( \hat{\mathbf{g}}_t \) and scale the update by \( \alpha \).
+        </p>
+        <p class="method-note hero-note">
+          \( \gamma=0 \) recovers Block Cyclic Coordinate Descent (BCCD); \( \gamma=1 \) keeps full stale-gradient history until coordinates are refreshed; \(0 &lt; \gamma &lt; 1\) fades older estimates.
+        </p>
+      </div>
     </header>
 
     <main>
@@ -258,9 +260,6 @@ optimizer = <span class="token class-name">CoCD</span>(
             </div>
             <p>
               This definition corresponds to the \(2\to\infty\) induced norm of the Hessian, whereas standard smoothness corresponds to the \(2\to 2\) induced norm, i.e., the spectral norm. It serves to construct the bounds below that treat blocks of coordinates separately.
-            </p>
-            <p>
-              A larger smoothing radius can reduce \(L_\epsilon\) on rough landscapes, giving stale coordinate information a more stable geometry to approximate.
             </p>
           </article>
           <article>

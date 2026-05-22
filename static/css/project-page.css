@@ -101,7 +101,7 @@ h1 {
   max-width: 980px;
 }
 
-.subtitle strong {
+.subtitle .cocd-name strong {
   color: #14191d;
   font-weight: 800;
 }
@@ -176,14 +176,6 @@ h1 {
   max-height: 400px;
   object-fit: contain;
   width: auto;
-}
-
-.hero-figure figcaption {
-  color: var(--muted);
-  font-size: 0.98rem;
-  margin: 0 auto;
-  max-width: 900px;
-  padding: 0 28px;
 }
 
 .hero-method {
@@ -315,6 +307,19 @@ main section {
 
 .hero-note {
   margin-bottom: 46px;
+  margin-top: 14px;
+}
+
+.hero-notes {
+  color: var(--muted);
+  font-size: 0.98rem;
+  margin-bottom: 0;
+}
+
+.hero-notes > p {
+  margin-left: 0;
+  max-width: none;
+  width: 100%;
 }
 
 .lay-summary {
@@ -545,6 +550,10 @@ td code {
   border-color: var(--gold);
 }
 
+.theory-list article:first-of-type .equation {
+  margin-top: 8px;
+}
+
 .theory-evidence {
   align-items: center;
   border-top: 1px solid var(--line);
@@ -741,6 +750,14 @@ td strong {
 .acknowledgement p {
   color: var(--muted);
   max-width: 900px;
+}
+
+.acknowledgement {
+  padding-bottom: 24px;
+}
+
+.citation {
+  padding-top: 24px;
 }
 
 @media (max-width: 920px) {
