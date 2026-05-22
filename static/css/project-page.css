@@ -166,16 +166,22 @@ h1 {
 }
 
 .hero-figure {
-  margin: 0 auto 28px;
-  max-width: 980px;
+  margin: 0 auto 16px;
+  max-width: 880px;
+}
+
+.hero-figure a {
+  aspect-ratio: 2.08 / 1;
+  display: block;
+  overflow: hidden;
 }
 
 .hero-figure img {
   height: auto;
   margin: 0 auto;
-  max-height: 400px;
+  max-height: none;
   object-fit: contain;
-  width: auto;
+  width: 100%;
 }
 
 .hero-method {
@@ -320,6 +326,19 @@ main section {
   margin-left: 0;
   max-width: none;
   width: 100%;
+}
+
+.teaser-caption {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.teaser-caption > p {
+  margin-bottom: 0.32rem;
+}
+
+.teaser-caption > p:last-child {
+  margin-bottom: 0;
 }
 
 .lay-summary {
