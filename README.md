@@ -2,7 +2,7 @@
 
 This repository contains a minimal PyTorch implementation of **Coherent Coordinate Descent (CoCD)**, the zeroth-order optimizer from:
 
-> Turning Stale Gradients into Stable Gradients: Coherent Coordinate Descent with Implicit Landscape Smoothing for Lightweight Zeroth-Order Optimization. ICML 2026.
+> [Turning Stale Gradients into Stable Gradients: Coherent Coordinate Descent with Implicit Landscape Smoothing for Lightweight Zeroth-Order Optimization](https://arxiv.org/abs/2605.14373). ICML 2026.
 
 CoCD is designed for settings where first-order gradients are unavailable or expensive to obtain, such as black-box objectives and memory-constrained on-device training.
 
