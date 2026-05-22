@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Project page for Coherent Coordinate Descent, a deterministic zeroth-order optimizer with stale-gradient reuse and implicit smoothing.">
+    <title>Coherent Coordinate Descent</title>
+    <link rel="stylesheet" href="static/css/project-page.css">
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [["\\(", "\\)"]],
+          displayMath: [["\\[", "\\]"]]
+        },
+        svg: {
+          fontCache: "global"
+        }
+      };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  </head>
+  <body>
+    <header class="paper-hero">
+      <div class="shell hero-copy">
+        <p class="venue">ICML 2026</p>
+        <h1>Turning Stale Gradients into Stable Gradients</h1>
+        <p class="subtitle">
+          <strong>Coherent Coordinate Descent</strong> with Implicit Landscape Smoothing for Lightweight Zeroth-Order Optimization
+        </p>
+        <p class="authors">
+          Chen Liang <span>Xiatao Sun</span> <span>Qian Wang</span> <span>Daniel Rakita</span>
+        </p>
+        <p class="affiliation">Department of Computer Science, Yale University</p>
+        <nav class="paper-links" aria-label="Paper links">
+          <a href="static/pdfs/cocd-camera-ready.pdf">Camera-ready PDF</a>
+          <a href="https://arxiv.org/abs/2605.14373" rel="noopener" target="_blank">arXiv preprint</a>
+          <a href="https://github.com/chen-dylan-liang/CoCD" rel="noopener" target="_blank">Code</a>
+          <a href="#citation">BibTeX</a>
+        </nav>
+      </div>
+      <figure class="hero-figure">
+        <a href="static/pdfs/cocd-teaser.pdf" aria-label="Open the camera-ready CoCD teaser figure as PDF.">
+          <img src="static/images/cocd-teaser-figure.png" alt="A stale-to-fresh gradient buffer with fresher coordinate blocks weighted more strongly.">
+        </a>
+        <figcaption>
+          Each cuboid is a block of coordinate gradient estimates, ordered from the stalest block at t - tau to the freshest block at t. The fill levels encode momentum decay: fresher estimates receive larger weights before all blocks accumulate into the current gradient estimate and scale the update by alpha.
+        </figcaption>
+      </figure>
+      <div class="shell hero-method" aria-label="CoCD update cycle">
+        <article>
+          <p class="step">1. Decay</p>
+          <p>Momentum fades older blocks, matching the lower fill levels on the stale side of the figure.</p>
+        </article>
+        <article>
+          <p class="step">2. Refresh</p>
+          <p>A cyclic schedule overwrites B coordinates with fresh finite differences at the current parameters.</p>
+        </article>
+        <article>
+          <p class="step">3. Descend</p>
+          <p>The decay-weighted blocks form a full update direction, then alpha scales the parameter step.</p>
+        </article>
+      </div>
+      <p class="shell method-note hero-note">
+        gamma = 0 recovers Block Cyclic Coordinate Descent (BCCD); gamma = 1 keeps full stale-gradient history until coordinates are refreshed; 0 &lt; gamma &lt; 1 fades older estimates.
+      </p>
+    </header>
+
+    <main>
+      <section class="band" id="method">
+        <div class="shell">
+          <p class="result-label">Lay Summary</p>
+          <p class="lay-summary">
+            Many machine learning systems improve by using gradients: signals that indicate how their parameters should change. However, gradients are not always available. For example, a model may run on a small device with limited memory, or the system being optimized may only allow us to test how well a solution works without revealing its internal details. We introduce Coherent Coordinate Descent, a method for improving such systems using only these tests. At each step, it still updates the whole model, but only recomputes fresh information for a small subset of parameters. For the remaining parameters, it reuses older information with a decay factor, so recent estimates matter more than older ones. The key idea is that learning usually changes smoothly, so past information can remain useful when reused carefully. In experiments on neural networks, our method learned more stably and efficiently than standard alternatives. This could make machine learning easier to use in black-box systems and on low-memory devices.
+          </p>
+        </div>
+      </section>
+
+      <section class="shell abstract-section" id="abstract">
+        <h2>Abstract</h2>
+        <div class="takeaways" aria-label="Core paper takeaways">
+          <article>
+            <h3>Reuse</h3>
+            <p>Gradient history supplies dense update directions even when only a small coordinate budget is refreshed at one step.</p>
+          </article>
+          <article>
+            <h3>Smooth</h3>
+            <p>A finite-difference radius can average away small-scale landscape oscillations instead of only acting as approximation error.</p>
+          </article>
+          <article>
+            <h3>Budget</h3>
+            <p>Compute and memory budgets are explicit: the cyclic buffer can preserve or truncate old estimates as hardware allows.</p>
+          </article>
+        </div>
+        <p>
+          Zeroth-Order (ZO) optimization is pivotal for scenarios where backpropagation is unavailable, such as memory-constrained on-device learning and black-box optimization. However, existing methods face a stark trade-off: they are either sample-inefficient (e.g., standard finite differences) or suffer from high variance due to randomized estimation (e.g., random subspace methods). In this work, we propose Coherent Coordinate Descent (CoCD), a deterministic, sample-efficient, and budget-aware ZO optimizer. Theoretically, we formalize the notion of gradient coherence and demonstrate that CoCD is equivalent to Block Cyclic Coordinate Descent (BCCD) with "warm starts," effectively converting historical (stale) gradients from a liability into a computational asset. This mechanism enables \(O(1)\) query complexity per step while maintaining global descent directions. Furthermore, we derive error bounds revealing a counter-intuitive insight: larger finite-difference step sizes can induce an implicit smoothing effect on the optimization landscape by reducing the effective smoothness constant, thereby improving convergence stability. Experiments on MLP, CNN, and ResNet architectures (up to 270k parameters) demonstrate that CoCD significantly outperforms BCCD in terms of sample efficiency and convergence loss/accuracy, and exhibits superior stability over randomized ZO methods. Our results suggest that deterministic, structure-aware updates offer a superior alternative to randomization for lightweight ZO optimization.
+        </p>
+      </section>
+
+      <section class="shell usage" id="usage">
+        <h2>Quick Start</h2>
+        <p class="section-lead">
+          CoCD follows a PyTorch-style optimizer interface, but each step receives a closure because finite differences must re-evaluate the objective after parameter perturbations.
+        </p>
+        <div class="quickstart-grid">
+          <div class="code-panel">
+            <pre><code class="language-python"><span class="token keyword">import</span> torch
+
+<span class="token keyword">from</span> cocd <span class="token keyword">import</span> <span class="token class-name">CoCD</span>
+
+
+torch.<span class="token function">manual_seed</span>(<span class="token number">0</span>)
+
+x = torch.<span class="token function">linspace</span>(-<span class="token number">1</span>, <span class="token number">1</span>, <span class="token number">64</span>).<span class="token function">unsqueeze</span>(<span class="token number">1</span>)
+y = <span class="token number">3.0</span> * x - <span class="token number">0.5</span>
+
+model = torch.nn.<span class="token function">Linear</span>(<span class="token number">1</span>, <span class="token number">1</span>)
+loss_fn = torch.nn.<span class="token function">MSELoss</span>()
+
+optimizer = <span class="token class-name">CoCD</span>(
+    model.<span class="token function">parameters</span>(),
+    lr=<span class="token number">1e-2</span>,
+    eps=<span class="token number">1e-2</span>,
+    compute_budget=<span class="token number">8</span>,
+    momentum=<span class="token number">0.99</span>,
+)
+
+<span class="token keyword">for</span> step <span class="token keyword">in</span> <span class="token builtin">range</span>(<span class="token number">200</span>):
+    <span class="token keyword">def</span> <span class="token function">closure</span>():
+        <span class="token keyword">return</span> loss_fn(model(x), y)
+
+    loss = <span class="token function">closure</span>()
+    optimizer.<span class="token function">step</span>(<span class="token function">closure</span>)
+
+    <span class="token keyword">if</span> step % <span class="token number">50</span> == <span class="token number">0</span>:
+        <span class="token builtin">print</span>(<span class="token string">f"step={step:03d} loss={loss.item():.6f}"</span>)</code></pre>
+          </div>
+          <div class="setup-notes">
+            <div>
+              <p class="result-label">Minimal setup</p>
+              <pre><code>pip install torch</code></pre>
+              <p>
+                Keep <code>cocd.py</code> and <code>zeroth_order_optim.py</code> together in the project or on the Python path.
+              </p>
+            </div>
+            <div>
+              <h3>Closure contract</h3>
+              <ul>
+                <li>Return a scalar PyTorch tensor recomputed at the current parameters.</li>
+                <li>Do not call <code>backward()</code>; CoCD uses function evaluations under <code>torch.no_grad()</code>.</li>
+                <li>Keep the mini-batch and within-step stochastic state fixed across finite-difference evaluations.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="api-block">
+          <div>
+            <h3>Optimizer API</h3>
+            <pre class="signature"><code class="language-python">optimizer = <span class="token class-name">CoCD</span>(
+    params,
+    lr=<span class="token number">1e-2</span>,
+    weight_decay=<span class="token number">0.0</span>,
+    init_grad=<span class="token constant">None</span>,
+    eps=<span class="token number">1e-1</span>,
+    compute_budget=<span class="token number">1</span>,
+    memory_budget=<span class="token constant">None</span>,
+    momentum=<span class="token number">1.0</span>,
+    central_difference=<span class="token constant">True</span>,
+)</code></pre>
+            <p>
+              The optimizer also supports <code>state_dict()</code>, <code>load_state_dict()</code>, and <code>reset()</code>.
+            </p>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Argument</th>
+                  <th>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>params</code></td>
+                  <td>Iterable of PyTorch parameters.</td>
+                </tr>
+                <tr>
+                  <td><code>lr</code></td>
+                  <td>Learning rate used when the gradient buffer updates parameters.</td>
+                </tr>
+                <tr>
+                  <td><code>weight_decay</code></td>
+                  <td>Decoupled weight decay applied during the update.</td>
+                </tr>
+                <tr>
+                  <td><code>init_grad</code></td>
+                  <td>Optional initial flat buffer with <code>memory_budget</code> entries.</td>
+                </tr>
+                <tr>
+                  <td><code>eps</code></td>
+                  <td>Finite-difference radius and implicit smoothing radius.</td>
+                </tr>
+                <tr>
+                  <td><code>compute_budget</code></td>
+                  <td>Coordinates refreshed per step. The finite-difference helper currently costs two objective evaluations per refreshed coordinate.</td>
+                </tr>
+                <tr>
+                  <td><code>memory_budget</code></td>
+                  <td>FIFO entries retained. The default stores one estimate per scalar parameter.</td>
+                </tr>
+                <tr>
+                  <td><code>momentum</code></td>
+                  <td>Decay for gradient history: <code>1.0</code> keeps full reuse and <code>0.0</code> recovers BCCD.</td>
+                </tr>
+                <tr>
+                  <td><code>central_difference</code></td>
+                  <td>Switch between symmetric central and one-sided finite differences.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tuning-block">
+          <h3>Practical tuning order</h3>
+          <ol>
+            <li><strong>Budgets:</strong> raise <code>compute_budget</code> within the wall-clock limit and give <code>memory_budget</code> as much storage as hardware allows.</li>
+            <li><strong>Learning rate:</strong> begin near the first-order SGD learning rate for the architecture.</li>
+            <li><strong>Smoothing:</strong> start with <code>eps=1.0</code> when the objective scale permits; reduce it if perturbations are too large, and increase it if tiny finite differences are noisy or unstable.</li>
+            <li><strong>Momentum:</strong> use <code>momentum</code> as the stability valve. Start from <code>1.0</code>, then lower it toward <code>0.99</code>, <code>0.95</code>, <code>0.9</code>, or below when stale estimates drift too far.</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="shell" id="theory">
+        <h2>Theory Novelty</h2>
+        <p class="section-lead">
+          The analysis explains when stale coordinate estimates remain coherent and why finite-difference smoothing changes the stability picture.
+        </p>
+        <div class="theory-list">
+          <article>
+            <p class="result-label">Definition 5.2</p>
+            <h3>Uniform coordinate-wise smoothness with implicit smoothing</h3>
+            <p>
+              Finite differences average local coordinate information over a neighborhood. \(L_{\epsilon}\) defined below captures uniform coordinate-wise continuity of the finite-difference gradients:
+            </p>
+            <div class="equation">
+              \[
+                L_\epsilon :=
+                \max_{i \in [n]} \sup_{\mathbf{x}\ne\mathbf{y}}
+                \frac{
+                  \left|\tilde{\nabla}^{\epsilon}_i f(\mathbf{x}) -
+                  \tilde{\nabla}^{\epsilon}_i f(\mathbf{y})\right|
+                }{
+                  \|\mathbf{x}-\mathbf{y}\|
+                }.
+              \]
+            </div>
+            <p>
+              This definition corresponds to the \(2\to\infty\) induced norm of the Hessian, whereas standard smoothness corresponds to the \(2\to 2\) induced norm, i.e., the spectral norm. It serves to construct the bounds below that treat blocks of coordinates separately.
+            </p>
+            <p>
+              A larger smoothing radius can reduce \(L_\epsilon\) on rough landscapes, giving stale coordinate information a more stable geometry to approximate.
+            </p>
+          </article>
+          <article>
+            <p class="result-label">Theorem 5.3</p>
+            <h3>Approximation error for stale finite-difference gradients</h3>
+            <p>
+              For compute budget \(B\), \(K=\lfloor n/B \rfloor\), remainder \(r=n \bmod B\), and a bound \(\delta\) on consecutive iterate distances:
+            </p>
+            <div class="equation">
+              \[
+                \left\|\hat{\mathbf{g}}_t -
+                \tilde{\nabla}^{\epsilon}f(\mathbf{x}_t)\right\|
+                \le
+                \frac{L_\epsilon\delta}{2}
+                \left(BK(K-1)+2rK\right)
+                \le
+                \frac{L\delta}{2}
+                \left(BK(K-1)+2rK\right).
+              \]
+            </div>
+            <p>
+              Staleness error is governed by \(L_\epsilon\delta\): raising the budget shortens staleness, while implicit smoothing and controlled steps reduce the error multiplier.
+            </p>
+          </article>
+          <div class="theory-evidence">
+            <div>
+              <h3>Bound check</h3>
+              <p>
+                The camera-ready appendix measures gradient approximation error on a SARCOS feed-forward model. Error falls predictably as the coordinate budget grows, matching the dependence in Theorem 5.3.
+              </p>
+            </div>
+            <figure class="plot-frame compact">
+              <img src="static/images/gradient-error.png" alt="Gradient approximation error decreases as compute budget increases.">
+            </figure>
+          </div>
+          <article>
+            <p class="result-label">Theorem 5.10</p>
+            <h3>Linear convergence under the standard PL setting</h3>
+            <p>
+              Under \(L\)-smoothness, the Polyak-Lojasiewicz condition, and vanishing finite-difference interval, let \(\tau=n/B-1\). CoCD satisfies
+            </p>
+            <div class="equation">
+              \[
+                f(\mathbf{x}_t)-f(\mathbf{x}^*)
+                \le
+                \left(1-\frac{2\mu C_1}{C_2}\right)^t
+                \left(f(\mathbf{x}_0)-f(\mathbf{x}^*)\right),
+              \]
+              \[
+                C_1=\frac{1}{\alpha}-\frac{L}{2}(1+n\tau),
+                \qquad
+                C_2=\frac{1}{\alpha^2}+\frac{Ln\tau}{2\alpha}
+                +\frac{L^2n^2\tau^2}{4}.
+              \]
+            </div>
+            <p>
+              Full budget gives \(\tau=0\) and recovers the standard gradient descent linear rate. With positive smoothing radius, the paper extends the picture with \(L_\epsilon\) and a finite-difference bias term.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="band evaluation" id="evaluation">
+        <div class="shell">
+          <h2>Practical Evaluation</h2>
+          <p class="section-lead">
+            The paper evaluates regression and classification workloads, isolates each budget and smoothing control, compares against random-update zeroth-order baselines, and includes a ResNet-20 scale-up run.
+          </p>
+
+          <div class="evaluation-scope">
+            <article>
+              <h3>Benchmarks</h3>
+              <p>SARCOS regression with a 5-layer MLP, plus MNIST and CIFAR-10 classification with a compact CNN.</p>
+            </article>
+            <article>
+              <h3>Comparisons</h3>
+              <p>BCCD isolates stale-gradient reuse, SGD is a first-order oracle reference, and SPSA plus ZO-SGD test randomized ZO updates.</p>
+            </article>
+            <article>
+              <h3>Ablations</h3>
+              <p>The smoothing radius \(\epsilon\), momentum \(\gamma\), compute budget \(B\), and memory ratio \(M=m/n\) are varied.</p>
+            </article>
+          </div>
+          <p class="evaluation-note">
+            Main experiments run for 50 epochs with aligned learning rate and weight decay across CoCD, BCCD, and SGD. Batch size is 64 for SARCOS and 128 for classification. The paper uses PyTorch on one NVIDIA RTX PRO 6000 Blackwell GPU; its BCCD main-results baseline uses \(\epsilon=10^{-6}\).
+          </p>
+
+          <div class="tables">
+            <div>
+              <h3>Main CoCD settings</h3>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Dataset</th>
+                      <th>LR</th>
+                      <th>\(\gamma\)</th>
+                      <th>\(\epsilon\)</th>
+                      <th>Budget</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>SARCOS</td>
+                      <td>0.001</td>
+                      <td>1.0</td>
+                      <td>1.0</td>
+                      <td>64 (about 0.5%)</td>
+                    </tr>
+                    <tr>
+                      <td>MNIST</td>
+                      <td>0.01</td>
+                      <td>0.99</td>
+                      <td>0.1</td>
+                      <td>256 (about 1.3%)</td>
+                    </tr>
+                    <tr>
+                      <td>CIFAR-10</td>
+                      <td>0.01</td>
+                      <td>0.99</td>
+                      <td>0.1</td>
+                      <td>1024 (about 4.2%)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h3>Main results</h3>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Dataset</th>
+                      <th>BCCD</th>
+                      <th>CoCD</th>
+                      <th>SGD oracle</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>SARCOS loss</td>
+                      <td>188.73</td>
+                      <td><strong>31.18</strong></td>
+                      <td>5.38</td>
+                    </tr>
+                    <tr>
+                      <td>MNIST acc.</td>
+                      <td>27.03%</td>
+                      <td><strong>95.48%</strong></td>
+                      <td>99.21%</td>
+                    </tr>
+                    <tr>
+                      <td>CIFAR-10 acc.</td>
+                      <td>10.13%</td>
+                      <td><strong>45.08%</strong></td>
+                      <td>62.51%</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="result-block">
+            <div>
+              <h3>Convergence and smoothing</h3>
+              <p>
+                With aligned learning rates and weight decay, CoCD improves over BCCD on every main task with negligible additional epoch time. The SARCOS plot shows the distinctive smoothing effect: the large radius \(\epsilon=1\) hurts BCCD but gives CoCD its lowest validation loss.
+              </p>
+            </div>
+            <figure class="plot-frame main-plot">
+              <img src="static/images/main-results.png" alt="SARCOS loss curves showing CoCD below BCCD across finite-difference radii.">
+            </figure>
+          </div>
+
+          <div class="ablation-block">
+            <h3>Ablation studies</h3>
+            <p>
+              On SARCOS, larger \(\epsilon\) improves the MLP trajectory; on MNIST, smaller radii can improve final accuracy while larger radii smooth the curve. Momentum supplies the strongest speed and robustness gain. Compute budget sets a stability threshold, and a reduced memory ratio adds noise without eliminating convergence.
+            </p>
+            <figure class="ablation-grid" aria-label="Ablation plots for SARCOS MLP and MNIST CNN">
+              <span></span>
+              <span>Radius \(\epsilon\)</span>
+              <span>Momentum \(\gamma\)</span>
+              <span>Compute \(B\)</span>
+              <span>Memory \(M\)</span>
+              <strong>MLP<br>Regression</strong>
+              <img src="static/images/ablation-epsilon-mlp.png" alt="MLP epsilon ablation plot.">
+              <img src="static/images/ablation-momentum-mlp.png" alt="MLP momentum ablation plot.">
+              <img src="static/images/ablation-budget-mlp.png" alt="MLP compute budget ablation plot.">
+              <img src="static/images/ablation-memory-mlp.png" alt="MLP memory budget ablation plot.">
+              <strong>CNN<br>Classification</strong>
+              <img src="static/images/ablation-epsilon-cnn.png" alt="CNN epsilon ablation plot.">
+              <img src="static/images/ablation-momentum-cnn.png" alt="CNN momentum ablation plot.">
+              <img src="static/images/ablation-budget-cnn.png" alt="CNN compute budget ablation plot.">
+              <img src="static/images/ablation-memory-cnn.png" alt="CNN memory budget ablation plot.">
+            </figure>
+          </div>
+
+          <div class="comparison-grid">
+            <article>
+              <h3>Random-update baselines</h3>
+              <p>
+                Under matched function-evaluation budget on SARCOS, CoCD stays stable while SPSA and ZO-SGD diverge mid-run. ZO-SGD also needs dense Gaussian smoothing samples; the paper reports 8.1 seconds per episode for CoCD versus 15.7 for ZO-SGD.
+              </p>
+              <figure class="plot-frame compact">
+                <img src="static/images/random-baselines.png" alt="CoCD loss remains stable while SPSA and ZO-SGD diverge.">
+              </figure>
+            </article>
+            <article>
+              <h3>Scale-up run</h3>
+              <p>
+                A CIFAR-10 ResNet-20 run reaches about 270k trainable parameters. With \(B=2048\), \(\epsilon=1.0\), and momentum choices up to \(0.95\), CoCD remains stable and beats BCCD within the 10-episode window.
+              </p>
+              <figure class="plot-frame compact">
+                <img src="static/images/resnet-scale-up.png" alt="ResNet-20 CIFAR-10 scale-up plot comparing CoCD momenta and BCCD.">
+              </figure>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="shell acknowledgement" id="acknowledgement">
+        <h2>Acknowledgement</h2>
+        <p>
+          Chen Liang thanks Serena (Weiying) Wu for the help of Figure 2 in the paper, and the emotional support provided near the submission deadline.
+        </p>
+      </section>
+
+      <section class="shell citation" id="citation">
+        <h2>Citation</h2>
+        <pre><code>@inproceedings{liang2026cocd,
+  title={Turning Stale Gradients into Stable Gradients: Coherent Coordinate Descent with Implicit Landscape Smoothing for Lightweight Zeroth-Order Optimization},
+  author={Liang, Chen and Sun, Xiatao and Wang, Qian and Rakita, Daniel},
+  booktitle={Proceedings of the 43rd International Conference on Machine Learning},
+  year={2026},
+  publisher={PMLR}
+}</code></pre>
+      </section>
+    </main>
+  </body>
+</html>
