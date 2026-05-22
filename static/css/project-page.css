@@ -166,13 +166,9 @@ h1 {
 }
 
 .hero-figure {
+  aspect-ratio: 1.98 / 1;
   margin: 0 auto 16px;
   max-width: 880px;
-}
-
-.hero-figure a {
-  aspect-ratio: 2.08 / 1;
-  display: block;
   overflow: hidden;
 }
 
