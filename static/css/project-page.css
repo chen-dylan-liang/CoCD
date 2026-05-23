@@ -363,6 +363,12 @@ main section {
   grid-template-columns: minmax(0, 1.22fr) minmax(300px, 0.78fr);
 }
 
+.quickstart-grid > *,
+.api-block > *,
+.tables > * {
+  min-width: 0;
+}
+
 .code-panel pre,
 .setup-notes pre,
 .signature,
@@ -372,7 +378,16 @@ main section {
   color: #f7fbfc;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   line-height: 1.55;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.code-panel code,
+.setup-notes code,
+.signature code,
+.citation code {
+  white-space: pre;
 }
 
 .code-panel pre {
@@ -621,7 +636,10 @@ td code {
 .table-scroll {
   border: 1px solid var(--line);
   border-radius: 8px;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -837,7 +855,6 @@ td strong {
   html,
   body {
     max-width: 100%;
-    overflow-x: hidden;
   }
 
   .shell {
@@ -1005,6 +1022,12 @@ td strong {
     gap: 22px;
   }
 
+  .quickstart-grid > *,
+  .api-block > *,
+  .tables > * {
+    min-width: 0;
+  }
+
   .code-panel pre,
   .setup-notes pre,
   .signature,
@@ -1012,7 +1035,17 @@ td strong {
     border-radius: 6px;
     font-size: 0.78rem;
     line-height: 1.48;
+    max-width: 100%;
+    overflow-x: auto;
     padding: 13px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .code-panel code,
+  .setup-notes code,
+  .signature code,
+  .citation code {
+    white-space: pre;
   }
 
   .api-block,
@@ -1053,6 +1086,9 @@ td strong {
 
   .table-scroll {
     border-radius: 6px;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
